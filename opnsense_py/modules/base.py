@@ -25,6 +25,7 @@ class BaseModule:
         command: str,
         request: SearchRequest | None = None,
     ) -> SearchResponse[dict[str, Any]]:
+        """POST a grid-search request and return one page of results."""
         req = request or SearchRequest()
         raw = self._client._post(
             f"{module}/{controller}/{command}", json=req.model_dump()
@@ -69,6 +70,7 @@ class BaseModule:
         command: str,
         uuid: str | None = None,
     ) -> dict[str, Any]:
+        """GET a single item, optionally scoped to *uuid*."""
         path = f"{module}/{controller}/{command}"
         if uuid:
             path = f"{path}/{uuid}"
@@ -81,6 +83,7 @@ class BaseModule:
         command: str,
         data: dict[str, Any],
     ) -> ApiResponse:
+        """POST *data* to create a new item; returns the new UUID in ``ApiResponse.uuid``."""
         raw = self._client._post(f"{module}/{controller}/{command}", json=data)
         return ApiResponse.model_validate(raw)
 
@@ -92,6 +95,7 @@ class BaseModule:
         uuid: str,
         data: dict[str, Any],
     ) -> ApiResponse:
+        """POST *data* to update an existing item identified by *uuid*."""
         raw = self._client._post(f"{module}/{controller}/{command}/{uuid}", json=data)
         return ApiResponse.model_validate(raw)
 
@@ -102,6 +106,7 @@ class BaseModule:
         command: str,
         uuid: str,
     ) -> ApiResponse:
+        """POST to delete the item identified by *uuid*."""
         raw = self._client._post(f"{module}/{controller}/{command}/{uuid}")
         return ApiResponse.model_validate(raw)
 
@@ -113,6 +118,7 @@ class BaseModule:
         uuid: str,
         enabled: bool | None = None,
     ) -> ApiResponse:
+        """Toggle the enabled state of *uuid*. Pass *enabled* to force a specific state."""
         path = f"{module}/{controller}/{command}/{uuid}"
         if enabled is not None:
             path = f"{path}/{int(enabled)}"

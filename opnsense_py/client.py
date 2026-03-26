@@ -62,6 +62,18 @@ class OPNsenseClient:
         port: int | None = None,
         https: bool = True,
     ) -> None:
+        """
+        Create a new OPNsense API client.
+
+        :param host: Hostname or IP address of the OPNsense firewall.
+        :param api_key: API key from *System → Access → Users → API keys*.
+        :param api_secret: Corresponding API secret.
+        :param verify_ssl: Verify the server's TLS certificate.
+            Set to ``False`` for self-signed certificates.
+        :param timeout: HTTP request timeout in seconds (default 30).
+        :param port: Override the default port (443 for HTTPS, 80 for HTTP).
+        :param https: Use HTTPS (default). Set to ``False`` for plain HTTP.
+        """
         scheme = "https" if https else "http"
         resolved_port = port if port is not None else (443 if https else 80)
         self._base_url = f"{scheme}://{host}:{resolved_port}/api/"
@@ -83,6 +95,7 @@ class OPNsenseClient:
         self.close()
 
     def close(self) -> None:
+        """Close the underlying HTTP connection pool."""
         self._http.close()
 
     # ------------------------------------------------------------------

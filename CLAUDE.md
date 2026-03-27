@@ -6,25 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Install with CLI extras
-pip install opnsense-py[cli]   # or: poetry install --extras cli
+pip install opnsense-py[cli]   # or: uv sync --extra cli
 
 # Run tests (excludes integration tests by default)
-poetry run pytest
+uv run pytest
 
 # Run a single test file
-poetry run pytest tests/unit/modules/core/test_cron.py
+uv run pytest tests/unit/modules/core/test_cron.py
 
 # Run a single test
-poetry run pytest tests/unit/modules/core/test_cron.py::test_search_jobs
+uv run pytest tests/unit/modules/core/test_cron.py::test_search_jobs
 
 # Run integration tests (requires live OPNsense instance)
-poetry run pytest -m integration
+uv run pytest -m integration
 
 # Lint
-poetry run ruff check .
+uv run ruff check .
 
 # Type check
-poetry run mypy opnsense_py/
+uv run mypy opnsense_py/
 ```
 
 ## Architecture

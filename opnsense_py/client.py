@@ -102,7 +102,7 @@ class OPNsenseClient:
     # Low-level HTTP methods
     # ------------------------------------------------------------------
 
-    def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         response = self._http.get(path, params=params)
         return self._handle_response(response)
 
@@ -111,11 +111,11 @@ class OPNsenseClient:
         path: str,
         json: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> Any:
         response = self._http.post(path, json=json or {}, params=params)
         return self._handle_response(response)
 
-    def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
+    def _handle_response(self, response: httpx.Response) -> Any:
         if response.status_code in (301, 302, 307, 308):
             location = response.headers.get("location", "")
             hint = ""
@@ -132,7 +132,7 @@ class OPNsenseClient:
             raise OPNsenseHTTPError(response.status_code, response.text)
 
         try:
-            data: dict[str, Any] = response.json()
+            data: Any = response.json()
         except Exception as exc:
             content_type = response.headers.get("content-type", "unknown")
             raise OPNsenseError(
@@ -141,7 +141,7 @@ class OPNsenseClient:
                 f"{response.text[:500] or '<empty body>'}"
             ) from exc
 
-        if data.get("validations"):
+        if isinstance(data, dict) and data.get("validations"):
             raise OPNsenseValidationError(data["validations"])
 
         return data

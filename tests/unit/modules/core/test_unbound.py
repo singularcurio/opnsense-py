@@ -66,6 +66,35 @@ def test_add_host_override(
     assert result.uuid == "new-h"
 
 
+def test_get_host_override_edit_form(
+    client: OPNsenseClient, mock_api: respx.MockRouter
+) -> None:
+    """get_host_override must parse the edit-form response (dropdown rr, empty-string ints)."""
+    mock_api.get("/api/unbound/settings/get_host_override/h1").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "host": {
+                    "hostname": "myhost",
+                    "domain": "example.com",
+                    "rr": {
+                        "A": {"value": "A (IPv4 address)", "selected": 1},
+                        "AAAA": {"value": "AAAA (IPv6 address)", "selected": 0},
+                    },
+                    "mxprio": "",
+                    "ttl": "",
+                    "server": "1.2.3.4",
+                }
+            },
+        )
+    )
+    result = client.unbound.get_host_override("h1")
+    assert result.hostname == "myhost"
+    assert result.rr == "A"
+    assert result.mxprio is None
+    assert result.ttl is None
+
+
 def test_reconfigure_general_uses_get(
     client: OPNsenseClient, mock_api: respx.MockRouter
 ) -> None:

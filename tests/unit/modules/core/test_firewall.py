@@ -3,6 +3,13 @@ import pytest
 import respx
 
 from opnsense_py import OPNsenseClient
+from opnsense_py.models.firewall import (
+    FilterRule,
+    FirewallAlias,
+    NPTRule,
+    OneToOneRule,
+    SNatRule,
+)
 
 
 def test_savepoint_yields_revision(
@@ -85,6 +92,25 @@ def test_toggle_filter_rule_enabled(
     )
     client.firewall.toggle_filter_rule("rule-uuid", enabled=True)
     assert route.called
+
+
+@pytest.mark.parametrize(
+    "model_cls",
+    [FilterRule, FirewallAlias, SNatRule, NPTRule, OneToOneRule],
+)
+def test_categories_empty_list_coerced_to_empty_string(model_cls: type) -> None:
+    """OPNsense returns categories: [] for resources with no category assigned."""
+    instance = model_cls.model_validate({"categories": []})
+    assert instance.categories == ""
+
+
+@pytest.mark.parametrize(
+    "model_cls",
+    [FilterRule, FirewallAlias, SNatRule, NPTRule, OneToOneRule],
+)
+def test_categories_string_value_unchanged(model_cls: type) -> None:
+    instance = model_cls.model_validate({"categories": "some-uuid"})
+    assert instance.categories == "some-uuid"
 
 
 def test_search_aliases(client: OPNsenseClient, mock_api: respx.MockRouter) -> None:

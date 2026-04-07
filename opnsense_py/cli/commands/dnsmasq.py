@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-import click
+from typing import Annotated
+
+import typer
 
 from opnsense_py.cli.main import get_ctx, handle_api_errors
 from opnsense_py.cli.output import render
@@ -8,172 +10,161 @@ from opnsense_py.cli.utils import build_model
 from opnsense_py.models.base import SearchRequest
 from opnsense_py.models.dnsmasq import DnsmasqDomainOverride, DnsmasqHost
 
-
-@click.group()
-def dnsmasq() -> None:
-    """Manage Dnsmasq DNS/DHCP host entries and domain overrides."""
+dnsmasq_app = typer.Typer(name="dnsmasq", help="Manage Dnsmasq DNS/DHCP host entries and domain overrides.")
 
 
 # ===========================================================================
 # Hosts
 # ===========================================================================
 
-
-@dnsmasq.group("host")
-def host() -> None:
-    """Manage Dnsmasq host entries."""
+host_app = typer.Typer(name="host", help="Manage Dnsmasq host entries.")
+dnsmasq_app.add_typer(host_app)
 
 
-@host.command("list")
-@click.option("--search", default="", help="Filter by search phrase.")
-@click.pass_context
+@host_app.command("list")
 @handle_api_errors
-def host_list(ctx: click.Context, search: str) -> None:
+def host_list(
+    ctx: typer.Context,
+    search: Annotated[str, typer.Option(help="Filter by search phrase.")] = "",
+) -> None:
     """List host entries."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.search_hosts(SearchRequest(searchPhrase=search)), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.search_hosts(SearchRequest(searchPhrase=search)), lctx.output_format))
 
 
-@host.command("get")
-@click.argument("uuid")
-@click.pass_context
+@host_app.command("get")
 @handle_api_errors
-def host_get(ctx: click.Context, uuid: str) -> None:
+def host_get(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+) -> None:
     """Get a host entry by UUID."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.get_host(uuid), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.get_host(uuid), lctx.output_format))
 
 
-@host.command("add")
-@click.option("--hostname", default=None)
-@click.option("--domain", default=None)
-@click.option("--ip", default=None, help="IP address.")
-@click.option("--description", default=None)
-@click.option("--enabled", default=None)
-@click.option("--from-json", "from_json", default=None, metavar="FILE|-")
-@click.pass_context
+@host_app.command("add")
 @handle_api_errors
 def host_add(
-    ctx: click.Context, hostname: str | None, domain: str | None,
-    ip: str | None, description: str | None, enabled: str | None,
-    from_json: str | None,
+    ctx: typer.Context,
+    hostname: Annotated[str | None, typer.Option()] = None,
+    domain: Annotated[str | None, typer.Option()] = None,
+    ip: Annotated[str | None, typer.Option(help="IP address.")] = None,
+    description: Annotated[str | None, typer.Option()] = None,
+    enabled: Annotated[str | None, typer.Option()] = None,
+    from_json: Annotated[str | None, typer.Option("--from-json", metavar="FILE|-")] = None,
 ) -> None:
     """Add a host entry."""
     lctx = get_ctx(ctx)
     obj = build_model(DnsmasqHost, from_json, hostname=hostname, domain=domain,
                       ip=ip, description=description, enabled=enabled)
-    click.echo(render(lctx.client.dnsmasq.add_host(obj), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.add_host(obj), lctx.output_format))
 
 
-@host.command("set")
-@click.argument("uuid")
-@click.option("--hostname", default=None)
-@click.option("--domain", default=None)
-@click.option("--ip", default=None)
-@click.option("--description", default=None)
-@click.option("--enabled", default=None)
-@click.option("--from-json", "from_json", default=None, metavar="FILE|-")
-@click.pass_context
+@host_app.command("set")
 @handle_api_errors
 def host_set(
-    ctx: click.Context, uuid: str, hostname: str | None, domain: str | None,
-    ip: str | None, description: str | None, enabled: str | None,
-    from_json: str | None,
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+    hostname: Annotated[str | None, typer.Option()] = None,
+    domain: Annotated[str | None, typer.Option()] = None,
+    ip: Annotated[str | None, typer.Option()] = None,
+    description: Annotated[str | None, typer.Option()] = None,
+    enabled: Annotated[str | None, typer.Option()] = None,
+    from_json: Annotated[str | None, typer.Option("--from-json", metavar="FILE|-")] = None,
 ) -> None:
     """Update a host entry."""
     lctx = get_ctx(ctx)
     obj = build_model(DnsmasqHost, from_json, hostname=hostname, domain=domain,
                       ip=ip, description=description, enabled=enabled)
-    click.echo(render(lctx.client.dnsmasq.set_host(uuid, obj), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.set_host(uuid, obj), lctx.output_format))
 
 
-@host.command("del")
-@click.argument("uuid")
-@click.pass_context
+@host_app.command("del")
 @handle_api_errors
-def host_del(ctx: click.Context, uuid: str) -> None:
+def host_del(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+) -> None:
     """Delete a host entry."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.del_host(uuid), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.del_host(uuid), lctx.output_format))
 
 
 # ===========================================================================
 # Domain overrides
 # ===========================================================================
 
-
-@dnsmasq.group("domain")
-def domain() -> None:
-    """Manage Dnsmasq domain overrides."""
+domain_app = typer.Typer(name="domain", help="Manage Dnsmasq domain overrides.")
+dnsmasq_app.add_typer(domain_app)
 
 
-@domain.command("list")
-@click.option("--search", default="", help="Filter by search phrase.")
-@click.pass_context
+@domain_app.command("list")
 @handle_api_errors
-def domain_list(ctx: click.Context, search: str) -> None:
+def domain_list(
+    ctx: typer.Context,
+    search: Annotated[str, typer.Option(help="Filter by search phrase.")] = "",
+) -> None:
     """List domain overrides."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.search_domains(SearchRequest(searchPhrase=search)), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.search_domains(SearchRequest(searchPhrase=search)), lctx.output_format))
 
 
-@domain.command("get")
-@click.argument("uuid")
-@click.pass_context
+@domain_app.command("get")
 @handle_api_errors
-def domain_get(ctx: click.Context, uuid: str) -> None:
+def domain_get(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+) -> None:
     """Get a domain override by UUID."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.get_domain(uuid), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.get_domain(uuid), lctx.output_format))
 
 
-@domain.command("add")
-@click.option("--domain", default=None)
-@click.option("--ip", default=None, help="Upstream DNS server IP.")
-@click.option("--description", default=None)
-@click.option("--enabled", default=None)
-@click.option("--from-json", "from_json", default=None, metavar="FILE|-")
-@click.pass_context
+@domain_app.command("add")
 @handle_api_errors
 def domain_add(
-    ctx: click.Context, domain: str | None, ip: str | None,
-    description: str | None, enabled: str | None, from_json: str | None,
+    ctx: typer.Context,
+    domain: Annotated[str | None, typer.Option()] = None,
+    ip: Annotated[str | None, typer.Option(help="Upstream DNS server IP.")] = None,
+    description: Annotated[str | None, typer.Option()] = None,
+    enabled: Annotated[str | None, typer.Option()] = None,
+    from_json: Annotated[str | None, typer.Option("--from-json", metavar="FILE|-")] = None,
 ) -> None:
     """Add a domain override."""
     lctx = get_ctx(ctx)
     obj = build_model(DnsmasqDomainOverride, from_json, domain=domain, ip=ip,
                       description=description, enabled=enabled)
-    click.echo(render(lctx.client.dnsmasq.add_domain(obj), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.add_domain(obj), lctx.output_format))
 
 
-@domain.command("set")
-@click.argument("uuid")
-@click.option("--domain", default=None)
-@click.option("--ip", default=None)
-@click.option("--description", default=None)
-@click.option("--enabled", default=None)
-@click.option("--from-json", "from_json", default=None, metavar="FILE|-")
-@click.pass_context
+@domain_app.command("set")
 @handle_api_errors
 def domain_set(
-    ctx: click.Context, uuid: str, domain: str | None, ip: str | None,
-    description: str | None, enabled: str | None, from_json: str | None,
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+    domain: Annotated[str | None, typer.Option()] = None,
+    ip: Annotated[str | None, typer.Option()] = None,
+    description: Annotated[str | None, typer.Option()] = None,
+    enabled: Annotated[str | None, typer.Option()] = None,
+    from_json: Annotated[str | None, typer.Option("--from-json", metavar="FILE|-")] = None,
 ) -> None:
     """Update a domain override."""
     lctx = get_ctx(ctx)
     obj = build_model(DnsmasqDomainOverride, from_json, domain=domain, ip=ip,
                       description=description, enabled=enabled)
-    click.echo(render(lctx.client.dnsmasq.set_domain(uuid, obj), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.set_domain(uuid, obj), lctx.output_format))
 
 
-@domain.command("del")
-@click.argument("uuid")
-@click.pass_context
+@domain_app.command("del")
 @handle_api_errors
-def domain_del(ctx: click.Context, uuid: str) -> None:
+def domain_del(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+) -> None:
     """Delete a domain override."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.del_domain(uuid), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.del_domain(uuid), lctx.output_format))
 
 
 # ===========================================================================
@@ -181,13 +172,12 @@ def domain_del(ctx: click.Context, uuid: str) -> None:
 # ===========================================================================
 
 
-@dnsmasq.command("leases")
-@click.pass_context
+@dnsmasq_app.command("leases")
 @handle_api_errors
-def leases(ctx: click.Context) -> None:
+def leases(ctx: typer.Context) -> None:
     """Show active DHCP leases."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.search_leases(), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.search_leases(), lctx.output_format))
 
 
 # ===========================================================================
@@ -195,46 +185,41 @@ def leases(ctx: click.Context) -> None:
 # ===========================================================================
 
 
-@dnsmasq.command("status")
-@click.pass_context
+@dnsmasq_app.command("status")
 @handle_api_errors
-def status(ctx: click.Context) -> None:
+def status(ctx: typer.Context) -> None:
     """Show Dnsmasq service status."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.status(), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.status(), lctx.output_format))
 
 
-@dnsmasq.command("reconfigure")
-@click.pass_context
+@dnsmasq_app.command("reconfigure")
 @handle_api_errors
-def reconfigure(ctx: click.Context) -> None:
+def reconfigure(ctx: typer.Context) -> None:
     """Apply Dnsmasq configuration changes."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.reconfigure(), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.reconfigure(), lctx.output_format))
 
 
-@dnsmasq.command("start")
-@click.pass_context
+@dnsmasq_app.command("start")
 @handle_api_errors
-def start(ctx: click.Context) -> None:
+def start(ctx: typer.Context) -> None:
     """Start the Dnsmasq service."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.start(), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.start(), lctx.output_format))
 
 
-@dnsmasq.command("stop")
-@click.pass_context
+@dnsmasq_app.command("stop")
 @handle_api_errors
-def stop(ctx: click.Context) -> None:
+def stop(ctx: typer.Context) -> None:
     """Stop the Dnsmasq service."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.stop(), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.stop(), lctx.output_format))
 
 
-@dnsmasq.command("restart")
-@click.pass_context
+@dnsmasq_app.command("restart")
 @handle_api_errors
-def restart(ctx: click.Context) -> None:
+def restart(ctx: typer.Context) -> None:
     """Restart the Dnsmasq service."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.dnsmasq.restart(), lctx.output_format))
+    typer.echo(render(lctx.client.dnsmasq.restart(), lctx.output_format))

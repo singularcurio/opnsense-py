@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import click
+from typing import Annotated
+
+import typer
 
 from opnsense_py.cli.main import get_ctx, handle_api_errors
 from opnsense_py.cli.output import render
 from opnsense_py.cli.utils import build_model
 from opnsense_py.models.cron import CronJob
 
-
-@click.group()
-def cron() -> None:
-    """Manage cron jobs."""
+cron_app = typer.Typer(name="cron", help="Manage cron jobs.")
 
 
 # ---------------------------------------------------------------------------
@@ -18,17 +17,18 @@ def cron() -> None:
 # ---------------------------------------------------------------------------
 
 
-@cron.command("list-jobs")
-@click.option("--search", default="", help="Filter by search phrase.")
-@click.pass_context
+@cron_app.command("list-jobs")
 @handle_api_errors
-def list_jobs(ctx: click.Context, search: str) -> None:
+def list_jobs(
+    ctx: typer.Context,
+    search: Annotated[str, typer.Option(help="Filter by search phrase.")] = "",
+) -> None:
     """List all cron jobs."""
     lctx = get_ctx(ctx)
     from opnsense_py.models.base import SearchRequest
 
     result = lctx.client.cron.search_jobs(SearchRequest(searchPhrase=search))
-    click.echo(render(result, lctx.output_format))
+    typer.echo(render(result, lctx.output_format))
 
 
 # ---------------------------------------------------------------------------
@@ -36,15 +36,16 @@ def list_jobs(ctx: click.Context, search: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-@cron.command("get-job")
-@click.argument("uuid")
-@click.pass_context
+@cron_app.command("get-job")
 @handle_api_errors
-def get_job(ctx: click.Context, uuid: str) -> None:
+def get_job(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+) -> None:
     """Get a cron job by UUID."""
     lctx = get_ctx(ctx)
     result = lctx.client.cron.get_job(uuid)
-    click.echo(render(result, lctx.output_format))
+    typer.echo(render(result, lctx.output_format))
 
 
 # ---------------------------------------------------------------------------
@@ -52,43 +53,27 @@ def get_job(ctx: click.Context, uuid: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-@cron.command("add-job")
-@click.option("--minutes", default=None)
-@click.option("--hours", default=None)
-@click.option("--days", default=None)
-@click.option("--months", default=None)
-@click.option("--weekdays", default=None)
-@click.option("--who", default=None)
-@click.option("--command", default=None)
-@click.option("--parameters", default=None)
-@click.option("--description", default=None)
-@click.option("--enabled", default=None, help='"1" to enable, "0" to disable.')
-@click.option(
-    "--from-json",
-    "from_json",
-    default=None,
-    metavar="FILE|-",
-    help="Read job fields from JSON (use - for stdin).",
-)
-@click.pass_context
+@cron_app.command("add-job")
 @handle_api_errors
 def add_job(
-    ctx: click.Context,
-    minutes: str | None,
-    hours: str | None,
-    days: str | None,
-    months: str | None,
-    weekdays: str | None,
-    who: str | None,
-    command: str | None,
-    parameters: str | None,
-    description: str | None,
-    enabled: str | None,
-    from_json: str | None,
+    ctx: typer.Context,
+    minutes: Annotated[str | None, typer.Option()] = None,
+    hours: Annotated[str | None, typer.Option()] = None,
+    days: Annotated[str | None, typer.Option()] = None,
+    months: Annotated[str | None, typer.Option()] = None,
+    weekdays: Annotated[str | None, typer.Option()] = None,
+    who: Annotated[str | None, typer.Option()] = None,
+    command: Annotated[str | None, typer.Option()] = None,
+    parameters: Annotated[str | None, typer.Option()] = None,
+    description: Annotated[str | None, typer.Option()] = None,
+    enabled: Annotated[str | None, typer.Option(help='"1" to enable, "0" to disable.')] = None,
+    from_json: Annotated[str | None, typer.Option("--from-json", metavar="FILE|-", help="Read job fields from JSON (use - for stdin).")] = None,
 ) -> None:
     """Add a new cron job."""
     lctx = get_ctx(ctx)
-    job = build_model(CronJob, from_json,
+    job = build_model(
+        CronJob,
+        from_json,
         minutes=minutes,
         hours=hours,
         days=days,
@@ -101,7 +86,7 @@ def add_job(
         enabled=enabled,
     )
     result = lctx.client.cron.add_job(job)
-    click.echo(render(result, lctx.output_format))
+    typer.echo(render(result, lctx.output_format))
 
 
 # ---------------------------------------------------------------------------
@@ -109,45 +94,28 @@ def add_job(
 # ---------------------------------------------------------------------------
 
 
-@cron.command("set-job")
-@click.argument("uuid")
-@click.option("--minutes", default=None)
-@click.option("--hours", default=None)
-@click.option("--days", default=None)
-@click.option("--months", default=None)
-@click.option("--weekdays", default=None)
-@click.option("--who", default=None)
-@click.option("--command", default=None)
-@click.option("--parameters", default=None)
-@click.option("--description", default=None)
-@click.option("--enabled", default=None, help='"1" to enable, "0" to disable.')
-@click.option(
-    "--from-json",
-    "from_json",
-    default=None,
-    metavar="FILE|-",
-    help="Read job fields from JSON (use - for stdin).",
-)
-@click.pass_context
+@cron_app.command("set-job")
 @handle_api_errors
 def set_job(
-    ctx: click.Context,
-    uuid: str,
-    minutes: str | None,
-    hours: str | None,
-    days: str | None,
-    months: str | None,
-    weekdays: str | None,
-    who: str | None,
-    command: str | None,
-    parameters: str | None,
-    description: str | None,
-    enabled: str | None,
-    from_json: str | None,
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+    minutes: Annotated[str | None, typer.Option()] = None,
+    hours: Annotated[str | None, typer.Option()] = None,
+    days: Annotated[str | None, typer.Option()] = None,
+    months: Annotated[str | None, typer.Option()] = None,
+    weekdays: Annotated[str | None, typer.Option()] = None,
+    who: Annotated[str | None, typer.Option()] = None,
+    command: Annotated[str | None, typer.Option()] = None,
+    parameters: Annotated[str | None, typer.Option()] = None,
+    description: Annotated[str | None, typer.Option()] = None,
+    enabled: Annotated[str | None, typer.Option(help='"1" to enable, "0" to disable.')] = None,
+    from_json: Annotated[str | None, typer.Option("--from-json", metavar="FILE|-", help="Read job fields from JSON (use - for stdin).")] = None,
 ) -> None:
     """Update an existing cron job."""
     lctx = get_ctx(ctx)
-    job = build_model(CronJob, from_json,
+    job = build_model(
+        CronJob,
+        from_json,
         minutes=minutes,
         hours=hours,
         days=days,
@@ -160,7 +128,7 @@ def set_job(
         enabled=enabled,
     )
     result = lctx.client.cron.set_job(uuid, job)
-    click.echo(render(result, lctx.output_format))
+    typer.echo(render(result, lctx.output_format))
 
 
 # ---------------------------------------------------------------------------
@@ -168,15 +136,16 @@ def set_job(
 # ---------------------------------------------------------------------------
 
 
-@cron.command("del-job")
-@click.argument("uuid")
-@click.pass_context
+@cron_app.command("del-job")
 @handle_api_errors
-def del_job(ctx: click.Context, uuid: str) -> None:
+def del_job(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+) -> None:
     """Delete a cron job."""
     lctx = get_ctx(ctx)
     result = lctx.client.cron.del_job(uuid)
-    click.echo(render(result, lctx.output_format))
+    typer.echo(render(result, lctx.output_format))
 
 
 # ---------------------------------------------------------------------------
@@ -184,16 +153,17 @@ def del_job(ctx: click.Context, uuid: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-@cron.command("toggle-job")
-@click.argument("uuid")
-@click.option("--enable/--disable", default=None, help="Set enabled state explicitly.")
-@click.pass_context
+@cron_app.command("toggle-job")
 @handle_api_errors
-def toggle_job(ctx: click.Context, uuid: str, enable: bool | None) -> None:
+def toggle_job(
+    ctx: typer.Context,
+    uuid: Annotated[str, typer.Argument()],
+    enable: Annotated[bool | None, typer.Option("--enable/--disable", help="Set enabled state explicitly.")] = None,
+) -> None:
     """Toggle a cron job on or off."""
     lctx = get_ctx(ctx)
     result = lctx.client.cron.toggle_job(uuid, enabled=enable)
-    click.echo(render(result, lctx.output_format))
+    typer.echo(render(result, lctx.output_format))
 
 
 # ---------------------------------------------------------------------------
@@ -201,13 +171,10 @@ def toggle_job(ctx: click.Context, uuid: str, enable: bool | None) -> None:
 # ---------------------------------------------------------------------------
 
 
-@cron.command("reconfigure")
-@click.pass_context
+@cron_app.command("reconfigure")
 @handle_api_errors
-def reconfigure(ctx: click.Context) -> None:
+def reconfigure(ctx: typer.Context) -> None:
     """Apply cron configuration changes."""
     lctx = get_ctx(ctx)
     result = lctx.client.cron.reconfigure()
-    click.echo(render(result, lctx.output_format))
-
-
+    typer.echo(render(result, lctx.output_format))

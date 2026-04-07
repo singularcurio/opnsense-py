@@ -1,13 +1,13 @@
 import httpx
 import respx
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from opnsense_py.cli.main import cli
+from opnsense_py.cli.main import app
 from opnsense_py.cli.main import _LazyContext
 
 
 def _invoke(runner: CliRunner, cli_obj: _LazyContext, args: list[str]):
-    return runner.invoke(cli, args, obj=cli_obj, catch_exceptions=False)
+    return runner.invoke(app, args, obj=cli_obj, catch_exceptions=False)
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ def test_add_job_with_json_stdin(
         return_value=httpx.Response(200, json={"result": "saved", "uuid": "new-uuid"})
     )
     result = runner.invoke(
-        cli,
+        app,
         ["cron", "add-job", "--from-json", "-"],
         obj=cli_obj,
         input='{"command": "/bin/echo", "description": "from stdin"}',
@@ -197,7 +197,7 @@ def test_auth_error_exits_2(
     mock_api.post("/api/cron/settings/search_jobs").mock(
         return_value=httpx.Response(401, text="Unauthorized")
     )
-    result = runner.invoke(cli, ["cron", "list-jobs"], obj=cli_obj)
+    result = runner.invoke(app, ["cron", "list-jobs"], obj=cli_obj)
     assert result.exit_code == 2
 
 
@@ -207,7 +207,7 @@ def test_not_found_exits_3(
     mock_api.get("/api/cron/settings/get_job/missing").mock(
         return_value=httpx.Response(404, text="Not Found")
     )
-    result = runner.invoke(cli, ["cron", "get-job", "missing"], obj=cli_obj)
+    result = runner.invoke(app, ["cron", "get-job", "missing"], obj=cli_obj)
     assert result.exit_code == 3
 
 
@@ -223,6 +223,6 @@ def test_validation_error_exits_4(
             },
         )
     )
-    result = runner.invoke(cli, ["cron", "add-job"], obj=cli_obj)
+    result = runner.invoke(app, ["cron", "add-job"], obj=cli_obj)
     assert result.exit_code == 4
     assert "job.command" in result.output

@@ -1,38 +1,32 @@
 from __future__ import annotations
 
-import click
+import typer
 
 from opnsense_py.cli.main import get_ctx, handle_api_errors
 from opnsense_py.cli.output import render
 
-
-@click.group()
-def ntpd() -> None:
-    """Show NTP daemon status and peer information."""
+ntpd_app = typer.Typer(name="ntpd", help="Show NTP daemon status and peer information.")
 
 
-@ntpd.command("status")
-@click.pass_context
+@ntpd_app.command("status")
 @handle_api_errors
-def status(ctx: click.Context) -> None:
+def status(ctx: typer.Context) -> None:
     """Show NTP service status."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.ntpd.status(), lctx.output_format))
+    typer.echo(render(lctx.client.ntpd.status(), lctx.output_format))
 
 
-@ntpd.command("peers")
-@click.pass_context
+@ntpd_app.command("peers")
 @handle_api_errors
-def peers(ctx: click.Context) -> None:
+def peers(ctx: typer.Context) -> None:
     """Show NTP peer metadata."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.ntpd.meta(), lctx.output_format))
+    typer.echo(render(lctx.client.ntpd.meta(), lctx.output_format))
 
 
-@ntpd.command("gps")
-@click.pass_context
+@ntpd_app.command("gps")
 @handle_api_errors
-def gps(ctx: click.Context) -> None:
+def gps(ctx: typer.Context) -> None:
     """Show GPS source status."""
     lctx = get_ctx(ctx)
-    click.echo(render(lctx.client.ntpd.gps(), lctx.output_format))
+    typer.echo(render(lctx.client.ntpd.gps(), lctx.output_format))

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import sys
+from enum import Enum
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Annotated, Any, Callable, TypeVar
 
-import click
+import typer
 
 from opnsense_py.cli.context import build_client
 from opnsense_py.exceptions import (
@@ -17,7 +17,11 @@ from opnsense_py.exceptions import (
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-_OUTPUT_CHOICES = click.Choice(["table", "json", "plain"], case_sensitive=False)
+
+class OutputFormat(str, Enum):
+    table = "table"
+    json = "json"
+    plain = "plain"
 
 
 # ---------------------------------------------------------------------------
@@ -33,75 +37,44 @@ def handle_api_errors(f: F) -> F:
         try:
             return f(*args, **kwargs)
         except OPNsenseValidationError as exc:
-            click.echo("Validation errors:", err=True)
+            typer.echo("Validation errors:", err=True)
             for field, msg in exc.validations.items():
-                click.echo(f"  {field}: {msg}", err=True)
-            sys.exit(4)
+                typer.echo(f"  {field}: {msg}", err=True)
+            raise typer.Exit(code=4)
         except OPNsenseAuthError:
-            click.echo("Authentication failed. Check your API key and secret.", err=True)
-            sys.exit(2)
+            typer.echo("Authentication failed. Check your API key and secret.", err=True)
+            raise typer.Exit(code=2)
         except OPNsenseNotFoundError as exc:
-            click.echo(f"Not found: {exc}", err=True)
-            sys.exit(3)
+            typer.echo(f"Not found: {exc}", err=True)
+            raise typer.Exit(code=3)
         except OPNsenseHTTPError as exc:
-            click.echo(f"HTTP error: {exc}", err=True)
-            sys.exit(1)
+            typer.echo(f"HTTP error: {exc}", err=True)
+            raise typer.Exit(code=1)
         except OPNsenseError as exc:
-            click.echo(f"API error: {exc}", err=True)
-            sys.exit(1)
+            typer.echo(f"API error: {exc}", err=True)
+            raise typer.Exit(code=1)
 
     return wrapper  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------
-# Root group
+# Root app
 # ---------------------------------------------------------------------------
 
+app = typer.Typer(help="opn — OPNsense command-line interface.")
 
-@click.group()
-@click.option("--host", envvar="OPNSENSE_HOST", default=None, help="OPNsense hostname or IP.")
-@click.option("--api-key", envvar="OPNSENSE_API_KEY", default=None, help="API key.")
-@click.option("--api-secret", envvar="OPNSENSE_API_SECRET", default=None, help="API secret.")
-@click.option(
-    "--no-verify-ssl",
-    is_flag=True,
-    default=False,
-    help="Disable TLS certificate verification.",
-)
-@click.option(
-    "--no-tls",
-    is_flag=True,
-    default=False,
-    envvar="OPNSENSE_NO_TLS",
-    help="Use plain HTTP instead of HTTPS (sets default port to 80).",
-)
-@click.option(
-    "--profile",
-    envvar="OPNSENSE_PROFILE",
-    default="default",
-    show_default=True,
-    help="Config file profile to use.",
-)
-@click.option(
-    "--output",
-    "-o",
-    type=_OUTPUT_CHOICES,
-    default="table",
-    show_default=True,
-    help="Output format.",
-)
-@click.pass_context
+
+@app.callback()
 def cli(
-    ctx: click.Context,
-    host: str | None,
-    api_key: str | None,
-    api_secret: str | None,
-    no_verify_ssl: bool,
-    no_tls: bool,
-    profile: str,
-    output: str,
+    ctx: typer.Context,
+    host: Annotated[str | None, typer.Option(envvar="OPNSENSE_HOST", help="OPNsense hostname or IP.")] = None,
+    api_key: Annotated[str | None, typer.Option(envvar="OPNSENSE_API_KEY", help="API key.")] = None,
+    api_secret: Annotated[str | None, typer.Option(envvar="OPNSENSE_API_SECRET", help="API secret.")] = None,
+    no_verify_ssl: Annotated[bool, typer.Option("--no-verify-ssl/--verify-ssl", help="Disable TLS certificate verification.")] = False,
+    no_tls: Annotated[bool, typer.Option("--no-tls/--tls", envvar="OPNSENSE_NO_TLS", help="Use plain HTTP instead of HTTPS.")] = False,
+    profile: Annotated[str, typer.Option(envvar="OPNSENSE_PROFILE", help="Config file profile to use.")] = "default",
+    output: Annotated[OutputFormat, typer.Option("-o", "--output", help="Output format.")] = OutputFormat.table,
 ) -> None:
-    """opn — OPNsense command-line interface."""
     # Allow tests to inject a pre-built _LazyContext via obj=
     if isinstance(ctx.obj, _LazyContext):
         return
@@ -112,12 +85,12 @@ def cli(
         verify_ssl=not no_verify_ssl,
         https=not no_tls,
         profile=profile,
-        output_format=output,
+        output_format=output.value,
     )
     ctx.call_on_close(_close_client(ctx))
 
 
-def _close_client(ctx: click.Context) -> Callable[[], None]:
+def _close_client(ctx: typer.Context) -> Callable[[], None]:
     def _close() -> None:
         lazy = ctx.obj
         if isinstance(lazy, _LazyContext) and lazy._client is not None:
@@ -162,8 +135,8 @@ class _LazyContext:
         return self._client
 
 
-def get_ctx(ctx: click.Context) -> _LazyContext:
-    """Retrieve the _LazyContext from the Click context object."""
+def get_ctx(ctx: typer.Context) -> _LazyContext:
+    """Retrieve the _LazyContext from the Typer context object."""
     return ctx.obj  # type: ignore[no-any-return]
 
 
@@ -171,54 +144,54 @@ def get_ctx(ctx: click.Context) -> _LazyContext:
 # Subgroup registration
 # ---------------------------------------------------------------------------
 
-from opnsense_py.cli.commands.auth import auth  # noqa: E402
-from opnsense_py.cli.commands.captiveportal import captiveportal  # noqa: E402
-from opnsense_py.cli.commands.cron import cron  # noqa: E402
-from opnsense_py.cli.commands.dhcrelay import dhcrelay  # noqa: E402
-from opnsense_py.cli.commands.diagnostics import diagnostics  # noqa: E402
-from opnsense_py.cli.commands.dnsmasq import dnsmasq  # noqa: E402
-from opnsense_py.cli.commands.firewall import firewall  # noqa: E402
-from opnsense_py.cli.commands.firmware import firmware  # noqa: E402
-from opnsense_py.cli.commands.haproxy import haproxy  # noqa: E402
-from opnsense_py.cli.commands.hostdiscovery import hostdiscovery  # noqa: E402
-from opnsense_py.cli.commands.ids import ids  # noqa: E402
-from opnsense_py.cli.commands.ipsec import ipsec  # noqa: E402
-from opnsense_py.cli.commands.kea import kea  # noqa: E402
-from opnsense_py.cli.commands.monit import monit  # noqa: E402
-from opnsense_py.cli.commands.ntpd import ntpd  # noqa: E402
-from opnsense_py.cli.commands.openvpn import openvpn  # noqa: E402
-from opnsense_py.cli.commands.radvd import radvd  # noqa: E402
-from opnsense_py.cli.commands.routes import routes  # noqa: E402
-from opnsense_py.cli.commands.routing import routing  # noqa: E402
-from opnsense_py.cli.commands.syslog import syslog  # noqa: E402
-from opnsense_py.cli.commands.system import system  # noqa: E402
-from opnsense_py.cli.commands.trafficshaper import trafficshaper  # noqa: E402
-from opnsense_py.cli.commands.trust import trust  # noqa: E402
-from opnsense_py.cli.commands.unbound import unbound  # noqa: E402
-from opnsense_py.cli.commands.wireguard import wireguard  # noqa: E402
+from opnsense_py.cli.commands.auth import auth_app  # noqa: E402
+from opnsense_py.cli.commands.captiveportal import captiveportal_app  # noqa: E402
+from opnsense_py.cli.commands.cron import cron_app  # noqa: E402
+from opnsense_py.cli.commands.dhcrelay import dhcrelay_app  # noqa: E402
+from opnsense_py.cli.commands.diagnostics import diagnostics_app  # noqa: E402
+from opnsense_py.cli.commands.dnsmasq import dnsmasq_app  # noqa: E402
+from opnsense_py.cli.commands.firewall import firewall_app  # noqa: E402
+from opnsense_py.cli.commands.firmware import firmware_app  # noqa: E402
+from opnsense_py.cli.commands.haproxy import haproxy_app  # noqa: E402
+from opnsense_py.cli.commands.hostdiscovery import hostdiscovery_app  # noqa: E402
+from opnsense_py.cli.commands.ids import ids_app  # noqa: E402
+from opnsense_py.cli.commands.ipsec import ipsec_app  # noqa: E402
+from opnsense_py.cli.commands.kea import kea_app  # noqa: E402
+from opnsense_py.cli.commands.monit import monit_app  # noqa: E402
+from opnsense_py.cli.commands.ntpd import ntpd_app  # noqa: E402
+from opnsense_py.cli.commands.openvpn import openvpn_app  # noqa: E402
+from opnsense_py.cli.commands.radvd import radvd_app  # noqa: E402
+from opnsense_py.cli.commands.routes import routes_app  # noqa: E402
+from opnsense_py.cli.commands.routing import routing_app  # noqa: E402
+from opnsense_py.cli.commands.syslog import syslog_app  # noqa: E402
+from opnsense_py.cli.commands.system import system_app  # noqa: E402
+from opnsense_py.cli.commands.trafficshaper import trafficshaper_app  # noqa: E402
+from opnsense_py.cli.commands.trust import trust_app  # noqa: E402
+from opnsense_py.cli.commands.unbound import unbound_app  # noqa: E402
+from opnsense_py.cli.commands.wireguard import wireguard_app  # noqa: E402
 
-cli.add_command(auth)
-cli.add_command(captiveportal)
-cli.add_command(cron)
-cli.add_command(dhcrelay)
-cli.add_command(diagnostics)
-cli.add_command(dnsmasq)
-cli.add_command(firewall)
-cli.add_command(firmware)
-cli.add_command(haproxy)
-cli.add_command(hostdiscovery)
-cli.add_command(ids)
-cli.add_command(ipsec)
-cli.add_command(kea)
-cli.add_command(monit)
-cli.add_command(ntpd)
-cli.add_command(openvpn)
-cli.add_command(radvd)
-cli.add_command(routes)
-cli.add_command(routing)
-cli.add_command(syslog)
-cli.add_command(system)
-cli.add_command(trafficshaper)
-cli.add_command(trust)
-cli.add_command(unbound)
-cli.add_command(wireguard)
+app.add_typer(auth_app)
+app.add_typer(captiveportal_app)
+app.add_typer(cron_app)
+app.add_typer(dhcrelay_app)
+app.add_typer(diagnostics_app)
+app.add_typer(dnsmasq_app)
+app.add_typer(firewall_app)
+app.add_typer(firmware_app)
+app.add_typer(haproxy_app)
+app.add_typer(hostdiscovery_app)
+app.add_typer(ids_app)
+app.add_typer(ipsec_app)
+app.add_typer(kea_app)
+app.add_typer(monit_app)
+app.add_typer(ntpd_app)
+app.add_typer(openvpn_app)
+app.add_typer(radvd_app)
+app.add_typer(routes_app)
+app.add_typer(routing_app)
+app.add_typer(syslog_app)
+app.add_typer(system_app)
+app.add_typer(trafficshaper_app)
+app.add_typer(trust_app)
+app.add_typer(unbound_app)
+app.add_typer(wireguard_app)

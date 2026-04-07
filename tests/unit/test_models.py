@@ -1,7 +1,7 @@
 import pytest
 
 from opnsense_py.models.base import ApiResponse, SearchRequest, SearchResponse
-from opnsense_py.models.unbound import HostOverride
+from opnsense_py.models.unbound import HostOverride, UnboundDnsbl
 
 
 def test_search_request_defaults() -> None:
@@ -104,3 +104,17 @@ class TestHostOverrideEditFormNormalization:
         assert host.mxprio is None
         assert host.ttl is None
         assert host.addptr == "0"
+
+    def test_str_fields_not_coerced(self) -> None:
+        # Empty string on a str | None field must be preserved so write payloads
+        # (e.g. clearing a text field) are not silently dropped.
+        host = HostOverride.model_validate({"hostname": "", "description": ""})
+        assert host.hostname == ""
+        assert host.description == ""
+
+
+def test_unbound_dnsbl_empty_cache_ttl() -> None:
+    dnsbl = UnboundDnsbl.model_validate({"cache_ttl": ""})
+    assert dnsbl.cache_ttl is None
+
+

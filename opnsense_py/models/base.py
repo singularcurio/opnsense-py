@@ -47,6 +47,8 @@ class OPNsenseModel(BaseModel):
             ann = field_info.annotation
             if _is_optional(ann, int) and value == "":
                 values[field_name] = None
+            elif _is_optional(ann, str) and isinstance(value, list):
+                values[field_name] = ""
             elif _is_optional(ann, str) and isinstance(value, dict):
                 values[field_name] = _extract_selected(value)
         return values

@@ -38,5 +38,5 @@ def require_confirmation(yes: bool, action: str = "this action") -> None:
     if not yes:
         raise typer.BadParameter(
             f"Pass --yes to confirm {action}.",
-            param_hint="'--yes'",
+            param_hint="--yes",
         )

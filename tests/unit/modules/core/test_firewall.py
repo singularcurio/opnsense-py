@@ -113,6 +113,75 @@ def test_categories_string_value_unchanged(model_cls: type) -> None:
     assert instance.categories == "some-uuid"
 
 
+def test_get_alias_parses_edit_form_response(
+    client: OPNsenseClient, mock_api: respx.MockRouter
+) -> None:
+    """get_alias must parse the form-data format returned by getAlias/{uuid}."""
+    mock_api.get("/api/firewall/alias/get_item/alias-uuid").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "alias": {
+                    "enabled": "1",
+                    "name": "my_alias",
+                    "type": {
+                        "host": {"value": "Host(s)", "selected": 0},
+                        "network": {"value": "Network(s)", "selected": 1},
+                        "port": {"value": "Port(s)", "selected": 0},
+                    },
+                    "proto": {
+                        "": {"value": "any", "selected": 1},
+                        "IPv4": {"value": "IPv4", "selected": 0},
+                        "IPv6": {"value": "IPv6", "selected": 0},
+                    },
+                    "interface": {
+                        "": {"value": "any", "selected": 1},
+                        "wan": {"value": "WAN", "selected": 0},
+                    },
+                    "content": {
+                        "192.168.1.0/24": {"value": "192.168.1.0/24", "selected": 1},
+                        "10.0.0.0/8": {"value": "10.0.0.0/8", "selected": 1},
+                    },
+                    "categories": [],
+                    "description": "Test alias",
+                }
+            },
+        )
+    )
+    alias = client.firewall.get_alias("alias-uuid")
+    assert alias.type == "network"
+    assert alias.proto == ""
+    assert alias.interface == ""
+    assert alias.content == "192.168.1.0/24\n10.0.0.0/8"
+    assert alias.categories == ""
+    assert alias.description == "Test alias"
+
+
+def test_get_alias_single_content_entry(
+    client: OPNsenseClient, mock_api: respx.MockRouter
+) -> None:
+    mock_api.get("/api/firewall/alias/get_item/alias-uuid").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "alias": {
+                    "name": "single",
+                    "type": {
+                        "host": {"value": "Host(s)", "selected": 1},
+                    },
+                    "content": {
+                        "192.30.252.0/22": {"value": "192.30.252.0/22", "selected": 1},
+                    },
+                    "categories": [],
+                }
+            },
+        )
+    )
+    alias = client.firewall.get_alias("alias-uuid")
+    assert alias.type == "host"
+    assert alias.content == "192.30.252.0/22"
+
+
 def test_search_aliases(client: OPNsenseClient, mock_api: respx.MockRouter) -> None:
     mock_api.post("/api/firewall/alias/search_item").mock(
         return_value=httpx.Response(

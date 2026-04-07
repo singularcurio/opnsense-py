@@ -8,11 +8,14 @@ T = TypeVar("T")
 
 
 def _extract_selected(d: dict[str, Any]) -> str | None:
-    """Return the key whose value dict has ``selected == 1``, or ``None``."""
-    for key, meta in d.items():
-        if isinstance(meta, dict) and meta.get("selected") == 1:
-            return key
-    return None
+    """Return all keys whose value dict has ``selected == 1``, joined by newline.
+
+    Single-select fields yield a bare string; multi-select fields (e.g. alias
+    ``content``) yield a newline-separated string matching the POST payload format.
+    Returns ``None`` when nothing is selected.
+    """
+    selected = [key for key, meta in d.items() if isinstance(meta, dict) and meta.get("selected") == 1]
+    return "\n".join(selected) if selected else None
 
 
 def _is_optional(annotation: Any, target: type) -> bool:

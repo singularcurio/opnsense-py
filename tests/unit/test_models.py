@@ -116,3 +116,5 @@ class TestHostOverrideEditFormNormalization:
 def test_unbound_dnsbl_empty_cache_ttl() -> None:
     dnsbl = UnboundDnsbl.model_validate({"cache_ttl": ""})
     assert dnsbl.cache_ttl is None
+
+

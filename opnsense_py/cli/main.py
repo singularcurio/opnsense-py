@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from enum import Enum
 from functools import wraps
 from typing import Annotated, Any, Callable, TypeVar
@@ -41,19 +40,19 @@ def handle_api_errors(f: F) -> F:
             typer.echo("Validation errors:", err=True)
             for field, msg in exc.validations.items():
                 typer.echo(f"  {field}: {msg}", err=True)
-            sys.exit(4)
+            raise typer.Exit(code=4)
         except OPNsenseAuthError:
             typer.echo("Authentication failed. Check your API key and secret.", err=True)
-            sys.exit(2)
+            raise typer.Exit(code=2)
         except OPNsenseNotFoundError as exc:
             typer.echo(f"Not found: {exc}", err=True)
-            sys.exit(3)
+            raise typer.Exit(code=3)
         except OPNsenseHTTPError as exc:
             typer.echo(f"HTTP error: {exc}", err=True)
-            sys.exit(1)
+            raise typer.Exit(code=1)
         except OPNsenseError as exc:
             typer.echo(f"API error: {exc}", err=True)
-            sys.exit(1)
+            raise typer.Exit(code=1)
 
     return wrapper  # type: ignore[return-value]
 

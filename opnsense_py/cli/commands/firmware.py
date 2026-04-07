@@ -6,6 +6,7 @@ import typer
 
 from opnsense_py.cli.main import get_ctx, handle_api_errors
 from opnsense_py.cli.output import render
+from opnsense_py.cli.utils import require_confirmation
 
 firmware_app = typer.Typer(name="firmware", help="Manage firmware, updates, and packages.")
 
@@ -115,9 +116,7 @@ def reboot(
     yes: Annotated[bool, typer.Option("--yes", help="Confirm reboot.")] = False,
 ) -> None:
     """Reboot the system. Requires --yes."""
-    if not yes:
-        typer.echo("Missing option '--yes'.", err=True)
-        raise typer.Exit(2)
+    require_confirmation(yes, "reboot")
     lctx = get_ctx(ctx)
     typer.echo(render(lctx.client.firmware.reboot(), lctx.output_format))
 
@@ -129,9 +128,7 @@ def poweroff(
     yes: Annotated[bool, typer.Option("--yes", help="Confirm power off.")] = False,
 ) -> None:
     """Power off the system. Requires --yes."""
-    if not yes:
-        typer.echo("Missing option '--yes'.", err=True)
-        raise typer.Exit(2)
+    require_confirmation(yes, "power off")
     lctx = get_ctx(ctx)
     typer.echo(render(lctx.client.firmware.poweroff(), lctx.output_format))
 

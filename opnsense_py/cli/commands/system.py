@@ -6,6 +6,7 @@ import typer
 
 from opnsense_py.cli.main import get_ctx, handle_api_errors
 from opnsense_py.cli.output import render
+from opnsense_py.cli.utils import require_confirmation
 from opnsense_py.models.base import SearchRequest
 
 system_app = typer.Typer(name="system", help="System control: services, tunables, backups, reboot.")
@@ -31,9 +32,7 @@ def reboot(
     yes: Annotated[bool, typer.Option("--yes", help="Confirm reboot.")] = False,
 ) -> None:
     """Reboot the system. Requires --yes."""
-    if not yes:
-        typer.echo("Missing option '--yes'.", err=True)
-        raise typer.Exit(2)
+    require_confirmation(yes, "reboot")
     lctx = get_ctx(ctx)
     typer.echo(render(lctx.client.core.reboot(), lctx.output_format))
 
@@ -45,9 +44,7 @@ def halt(
     yes: Annotated[bool, typer.Option("--yes", help="Confirm halt.")] = False,
 ) -> None:
     """Halt the system. Requires --yes."""
-    if not yes:
-        typer.echo("Missing option '--yes'.", err=True)
-        raise typer.Exit(2)
+    require_confirmation(yes, "halt")
     lctx = get_ctx(ctx)
     typer.echo(render(lctx.client.core.halt(), lctx.output_format))
 

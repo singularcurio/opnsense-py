@@ -5,7 +5,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-import click
+import typer
 
 from opnsense_py import OPNsenseClient
 
@@ -78,7 +78,7 @@ def build_client(
         if not val
     ]
     if missing:
-        raise click.UsageError(
+        raise typer.BadParameter(
             f"Missing required connection setting(s): {', '.join(missing)}. "
             f"Provide via --{missing[0]}, OPNSENSE_{missing[0].upper().replace('-', '_')} env var, "
             f"or ~/.config/opnsense-py/config.toml."

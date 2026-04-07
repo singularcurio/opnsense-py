@@ -31,12 +31,14 @@ class OPNsenseModel(BaseModel):
     def _normalize_edit_form(cls, values: Any) -> Any:
         """Normalize the edit-form response format returned by OPNsense ``get_*`` endpoints.
 
-        Edit-form responses differ from grid/search responses in two ways:
+        Edit-form responses differ from grid/search responses in several ways:
         - Dropdown/enum fields are dicts like ``{"A": {"value": "...", "selected": 1}, ...}``
           instead of plain strings.
         - Optional integer fields use ``""`` when unset instead of ``null``.
+        - Optional string fields (e.g. ``categories``) use ``[]`` when unset instead of
+          ``null`` or ``""``.
 
-        This validator handles both cases generically for all subclasses.
+        This validator handles all cases generically for all subclasses.
         """
         if not isinstance(values, dict):
             return values
@@ -47,7 +49,7 @@ class OPNsenseModel(BaseModel):
             ann = field_info.annotation
             if _is_optional(ann, int) and value == "":
                 values[field_name] = None
-            elif _is_optional(ann, str) and isinstance(value, list):
+            elif _is_optional(ann, str) and value == []:
                 values[field_name] = ""
             elif _is_optional(ann, str) and isinstance(value, dict):
                 values[field_name] = _extract_selected(value)

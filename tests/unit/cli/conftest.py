@@ -1,6 +1,6 @@
 import pytest
 import respx
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
 from opnsense_py import OPNsenseClient
 from opnsense_py.cli.main import _LazyContext

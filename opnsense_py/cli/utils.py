@@ -31,17 +31,3 @@ def build_model(model_cls: Type[M], from_json: str | None, **fields: Any) -> M:
             raise click.BadParameter(f"Invalid JSON: {exc}", param_hint="--from-json") from exc
         return model_cls.model_validate(data)
     return model_cls(**{k: v for k, v in fields.items() if v is not None})
-
-
-def from_json_option() -> click.Option:
-    return click.option(
-        "--from-json",
-        "from_json",
-        default=None,
-        metavar="FILE|-",
-        help="Read fields from JSON file or stdin (use - for stdin).",
-    )
-
-
-def search_option() -> click.Option:
-    return click.option("--search", default="", help="Filter results by phrase.")
